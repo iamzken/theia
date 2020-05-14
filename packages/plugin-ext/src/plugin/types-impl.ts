@@ -1327,6 +1327,13 @@ export enum FileType {
     SymbolicLink = 64
 }
 
+export interface FileStat {
+    type: FileType;
+    ctime: number;
+    mtime: number;
+    size: number;
+}
+
 export class ProgressOptions {
     /**
      * The location at which progress should show.
@@ -2013,17 +2020,17 @@ export enum FoldingRangeKind {
 
 export class SelectionRange {
 
-	range: Range;
-	parent?: SelectionRange;
+    range: Range;
+    parent?: SelectionRange;
 
-	constructor(range: Range, parent?: SelectionRange) {
-		this.range = range;
-		this.parent = parent;
+    constructor(range: Range, parent?: SelectionRange) {
+        this.range = range;
+        this.parent = parent;
 
-		if (parent && !parent.range.contains(this.range)) {
-			throw new Error('Invalid argument: parent must contain this range');
-		}
-	}
+        if (parent && !parent.range.contains(this.range)) {
+            throw new Error('Invalid argument: parent must contain this range');
+        }
+    }
 }
 
 /**

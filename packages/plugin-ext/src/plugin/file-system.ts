@@ -19,7 +19,7 @@ import * as theia from '@theia/plugin';
 import { PLUGIN_RPC_CONTEXT, FileSystemExt, FileSystemMain } from '../common/plugin-api-rpc';
 import { RPCProtocol } from '../common/rpc-protocol';
 import { UriComponents, Schemes } from '../common/uri-components';
-import { Disposable } from './types-impl';
+import { Disposable, FileStat, FileType } from './types-impl';
 import { InPluginFileSystemProxy } from './in-plugin-filesystem-proxy';
 
 export class FileSystemExtImpl implements FileSystemExt {
@@ -27,7 +27,7 @@ export class FileSystemExtImpl implements FileSystemExt {
     private readonly proxy: FileSystemMain;
     private readonly usedSchemes = new Set<string>();
     private readonly fsProviders = new Map<number, theia.FileSystemProvider>();
-    private fileSystem: InPluginFileSystemProxy;
+    private readonly fileSystem: InPluginFileSystemProxy;
 
     private handlePool: number = 0;
 
@@ -80,6 +80,24 @@ export class FileSystemExtImpl implements FileSystemExt {
 
     // forwarding calls
 
+    $stat(handle: number, resource: UriComponents): Promise<FileStat> {
+        this.checkProviderExists(handle);
+        const uri = URI.revive(resource);
+        return Promise.resolve(this.fsProviders.get(handle)!.stat(uri));
+    }
+
+    $readDirectory(handle: number, resource: UriComponents): Promise<[string, FileType][]> {
+        this.checkProviderExists(handle);
+        const uri = URI.revive(resource);
+        return Promise.resolve(this.fsProviders.get(handle)!.readDirectory(uri));
+    }
+
+    $createDirectory(handle: number, resource: UriComponents): Promise<void> {
+        this.checkProviderExists(handle);
+        const uri = URI.revive(resource);
+        return Promise.resolve(this.fsProviders.get(handle)!.createDirectory(uri));
+    }
+
     $readFile(handle: number, resource: UriComponents, options?: { encoding?: string }): Promise<string> {
         this.checkProviderExists(handle);
 
@@ -99,4 +117,26 @@ export class FileSystemExtImpl implements FileSystemExt {
         const opts = { create: true, overwrite: true };
         return Promise.resolve(this.fsProviders.get(handle)!.writeFile(uri, buffer, opts));
     }
+
+    $delete(handle: number, resource: UriComponents, options: { recursive: boolean }): Promise<void> {
+        this.checkProviderExists(handle);
+        const uri = URI.revive(resource);
+        return Promise.resolve(this.fsProviders.get(handle)!.delete(uri, options));
+    }
+
+    $rename(handle: number, source: UriComponents, target: UriComponents, options: { overwrite: boolean }): Promise<void> {
+        this.checkProviderExists(handle);
+        const sourceUri = URI.revive(source);
+        const targetUri = URI.revive(target);
+        return Promise.resolve(this.fsProviders.get(handle)!.rename(sourceUri, targetUri, options));
+    }
+
+    $copy(handle: number, source: UriComponents, target: UriComponents, options: { overwrite: boolean }): Promise<void> {
+        this.checkProviderExists(handle);
+        const sourceUri = URI.revive(source);
+        const targetUri = URI.revive(target);
+        const fileSystemProvider = this.fsProviders.get(handle)!;
+        return Promise.resolve(fileSystemProvider.copy && fileSystemProvider.copy(sourceUri, targetUri, options));
+    }
+
 }
